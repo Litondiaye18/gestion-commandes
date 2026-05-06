@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion Commandes - Vente de tissus</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="brand">
+      <img
+        src="logo.png"
+        alt="Logo boutique"
+        class="brand-logo"
+        onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';"
+      >
+      <span class="brand-fallback" style="display:none;">VT</span>
+      <div>
+        <h1>Gestion des commandes clients</h1>
+        <p>Vente de tissus - Cash ou Tontine</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>Nouvelle commande</h2>
+      <form id="order-form" class="grid-form">
+        <label>
+          Nom du client
+          <input type="text" id="clientName" required>
+        </label>
+
+        <label>
+          Téléphone
+          <input type="text" id="phone" placeholder="Ex: 0700000000">
+        </label>
+
+        <label>
+          Désignation (tissu)
+          <input type="text" id="itemName" required placeholder="Ex: Bazin riche bleu">
+        </label>
+
+        <label>
+          Quantité
+          <input type="number" id="quantity" min="1" value="1" required>
+        </label>
+
+        <label>
+          Prix unitaire
+          <input type="number" id="unitPrice" min="0" step="100" required>
+        </label>
+
+        <label>
+          Type de paiement
+          <select id="paymentType" required>
+            <option value="cash">Cash (paiement unique)</option>
+            <option value="tontine">Tontine (plusieurs fois)</option>
+          </select>
+        </label>
+
+        <label id="initial-payment-wrapper">
+          Montant payé maintenant
+          <input type="number" id="initialPayment" min="0" step="100" value="0">
+        </label>
+
+        <button type="submit" class="btn-primary">Enregistrer la commande</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Résumé rapide</h2>
+      <div class="stats">
+        <div class="stat-item">
+          <span>Total commandes</span>
+          <strong id="statOrders">0</strong>
+        </div>
+        <div class="stat-item">
+          <span>Montant total</span>
+          <strong id="statTotal">0</strong>
+        </div>
+        <div class="stat-item">
+          <span>Reste à encaisser</span>
+          <strong id="statRemaining">0</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="table-header">
+        <h2>Recettes encaissées</h2>
+        <div class="actions">
+          <label>
+            Période
+            <select id="chartPeriod">
+              <option value="day">Par jour</option>
+              <option value="week">Par semaine</option>
+              <option value="month">Par mois</option>
+            </select>
+          </label>
+          <button id="exportRevenuePdf" type="button">Export recettes PDF</button>
+          <button id="exportOrdersPdf" type="button">Export commandes PDF</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="ordersChart" aria-label="Graphique en batons des recettes"></canvas>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="table-header">
+        <h2>Liste des commandes</h2>
+        <button id="clearAll" class="btn-danger" type="button">Tout effacer</button>
+      </div>
+      <div class="filters">
+        <label>
+          Recherche (client, téléphone, article)
+          <input type="text" id="searchInput" placeholder="Ex: Awa, 0700, bazin...">
+        </label>
+        <label>
+          Type de paiement
+          <select id="filterPaymentType">
+            <option value="all">Tous</option>
+            <option value="cash">Cash</option>
+            <option value="tontine">Tontine</option>
+          </select>
+        </label>
+        <label>
+          Statut
+          <select id="filterStatus">
+            <option value="all">Tous</option>
+            <option value="paid">Payé</option>
+            <option value="remaining">Reste à payer</option>
+          </select>
+        </label>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th>Article</th>
+              <th>Type</th>
+              <th>Total</th>
+              <th>Payé</th>
+              <th>Reste</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="paymentDialog">
+    <form method="dialog" id="paymentForm" class="dialog-form">
+      <h3>Ajouter un versement</h3>
+      <p id="dialogClient"></p>
+      <label>
+        Montant du versement
+        <input type="number" id="paymentAmount" min="0" step="100" required>
+      </label>
+      <label>
+        Date du versement
+        <input type="datetime-local" id="paymentDate" required>
+      </label>
+      <menu>
+        <button value="cancel" type="button" id="cancelDialog">Annuler</button>
+        <button value="default" class="btn-primary" type="submit">Ajouter</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="historyDialog">
+    <form method="dialog" class="dialog-form history-form">
+      <h3>Historique des versements</h3>
+      <p id="historyClient"></p>
+      <div id="historySummary" class="history-summary"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Montant</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody"></tbody>
+        </table>
+      </div>
+      <menu>
+        <button value="cancel" type="submit">Fermer</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

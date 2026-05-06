@@ -1,0 +1,16 @@
+{
+  "name": "gestion-commande-tissus",
+  "version": "1.0.0",
+  "description": "Gestion des commandes clients avec SQLite",
+  "main": "server.js",
+  "engines": {
+    "node": "18.x"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "sqlite3": "^5.1.7"
+  }
+}
