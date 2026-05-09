@@ -1,7 +1,7 @@
 {
   "name": "gestion-commande-tissus",
   "version": "1.0.0",
-  "description": "Gestion des commandes clients avec SQLite",
+  "description": "Gestion des commandes clients avec PostgreSQL",
   "main": "server.js",
   "engines": {
     "node": "18.x"
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "express": "^4.21.2",
+    "pg": "^8.20.0",
     "sqlite3": "^5.1.7"
   }
 }

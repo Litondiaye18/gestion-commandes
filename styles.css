@@ -219,6 +219,22 @@ dialog {
   border: 1px solid #e2e8f0;
 }
 
+.history-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.btn-secondary {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+}
+
+.btn-secondary:hover {
+  background: #1d4ed8;
+}
+
 .history-form table {
   margin-top: 4px;
 }

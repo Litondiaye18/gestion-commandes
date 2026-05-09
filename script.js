@@ -33,6 +33,11 @@ const historySummary = document.getElementById("historySummary");
 const historyTableBody = document.getElementById("historyTableBody");
 const ordersChartCanvas = document.getElementById("ordersChart");
 let ordersChart = null;
+const exportInvoiceBtn = document.getElementById("exportInvoiceBtn");
+let currentHistoryOrder = null;
+if (exportInvoiceBtn) {
+  exportInvoiceBtn.disabled = true;
+}
 
 async function apiGetOrders() {
   const response = await fetch("/api/orders");
@@ -213,17 +218,69 @@ function getRevenueByPeriod(orders, period) {
   }));
 }
 
-function createPdf(title) {
+function createPdf(title, orientation = "landscape") {
   if (!window.jspdf || !window.jspdf.jsPDF) {
     alert("Bibliotheque PDF non chargee. Verifiez votre connexion internet.");
     return null;
   }
-  const doc = new window.jspdf.jsPDF({ orientation: "landscape" });
+  const doc = new window.jspdf.jsPDF({ orientation });
   doc.setFontSize(14);
   doc.text(title, 14, 14);
   doc.setFontSize(10);
   doc.text(`Genere le: ${new Date().toLocaleString("fr-FR")}`, 14, 20);
   return doc;
+}
+
+function createInvoicePdf(order) {
+  const paid = getOrderPaid(order);
+  const remaining = getRemaining(order);
+  const doc = createPdf(`Facture - ${order.clientName}`, "portrait");
+  if (!doc) return null;
+
+  const invoiceNumber = order.id || `FACT-${Date.now()}`;
+  const createdAt = formatDate(order.createdAt);
+
+  doc.setFontSize(12);
+  doc.text("Facture client", 14, 28);
+  doc.setFontSize(10);
+  doc.text(`Facture n°: ${invoiceNumber}`, 14, 36);
+  doc.text(`Client: ${order.clientName}`, 14, 42);
+  doc.text(`Téléphone: ${order.phone || "N/A"}`, 14, 48);
+  doc.text(`Article: ${order.itemName}`, 14, 54);
+  doc.text(`Quantité: ${order.quantity}`, 14, 60);
+  doc.text(`Prix unitaire: ${formatMoney(order.unitPrice)}`, 14, 66);
+  doc.text(`Total commande: ${formatMoney(order.total)}`, 14, 72);
+  doc.text(`Payé: ${formatMoney(paid)}`, 14, 78);
+  doc.text(`Reste: ${formatMoney(remaining)}`, 14, 84);
+  doc.text(`Date commande: ${createdAt}`, 14, 90);
+
+  const payments = [...(order.payments || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const paymentRows = payments.map((payment) => [
+    formatDate(payment.date),
+    formatMoney(Number(payment.amount || 0)),
+    payment.note || ""
+  ]);
+
+  if (paymentRows.length > 0) {
+    doc.autoTable({
+      head: [["Date", "Montant", "Note"]],
+      body: paymentRows,
+      startY: 100,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [37, 99, 235] }
+    });
+  } else {
+    doc.text("Aucun versement enregistre.", 14, 110);
+  }
+
+  return doc;
+}
+
+function downloadInvoice(order) {
+  const doc = createInvoicePdf(order);
+  if (!doc) return;
+  const safeName = order.clientName.replace(/[^a-z0-9-_]/gi, "_").toLowerCase();
+  doc.save(`facture_${safeName}_${order.id || Date.now()}.pdf`);
 }
 
 function renderChart(orders) {
@@ -384,6 +441,10 @@ function showHistory(order) {
     }
   }
 
+  currentHistoryOrder = order;
+  if (exportInvoiceBtn) {
+    exportInvoiceBtn.disabled = false;
+  }
   historyDialog.showModal();
 }
 
@@ -535,6 +596,22 @@ paymentForm.addEventListener("submit", async (event) => {
 cancelDialogBtn.addEventListener("click", () => {
   paymentDialog.close();
 });
+
+if (historyDialog) {
+  historyDialog.addEventListener("close", () => {
+    currentHistoryOrder = null;
+    if (exportInvoiceBtn) {
+      exportInvoiceBtn.disabled = true;
+    }
+  });
+}
+
+if (exportInvoiceBtn) {
+  exportInvoiceBtn.addEventListener("click", () => {
+    if (!currentHistoryOrder) return;
+    downloadInvoice(currentHistoryOrder);
+  });
+}
 
 clearAllBtn.addEventListener("click", async () => {
   if (!confirm("Supprimer toutes les commandes enregistrées ?")) return;
